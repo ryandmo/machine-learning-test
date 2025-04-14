@@ -1,10 +1,11 @@
 import { Component } from 'react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Tabs } from '@chakra-ui/react';
 import { Stack, StackSeparator } from '@chakra-ui/react';
 import { Input, InputGroup, CloseButton } from '@chakra-ui/react';
-import { LuSearch } from "react-icons/lu";
+import { IconButton } from "@chakra-ui/react"
+import { LuSearch } from "react-icons/lu"
+import Markdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 const generateChatConversationURL = 'http://192.168.0.160:8001/get_assistance/';
 
@@ -12,7 +13,8 @@ export default class Chatbot extends Component {
     state = {
         question_limit: 5,
         loading: false,
-        question: ''
+        question: '',
+        chat_conversation_area: <Stack gap="4" separator={<StackSeparator />} ><div className="assistant_role"><p>How Can I help you??</p></div></Stack>
     };
 
     handleQuestionLimit = () => {
@@ -42,9 +44,7 @@ export default class Chatbot extends Component {
                     {Object.keys(tabs).map((tabName, TabIndex) =>{
                         if(tabName === "chatbot"){
                              return (<Tabs.Content value={tabName}>
-                                { this.generateChatConversationArea() }
-                                <Stack separator={<StackSeparator />} >&nbsp;</Stack>
-                                { this.generateChatConversationArea() }
+                                { this.state.chat_conversation_area }
                                 <Stack separator={<StackSeparator />} >&nbsp;</Stack>
                                 { this.generateChatInputBox() }
                              </Tabs.Content>);
@@ -61,13 +61,17 @@ export default class Chatbot extends Component {
 
     generateChatConversationArea = (data) => {
         return (
-                <Stack gap="4" separator={<StackSeparator />} >
-                    <p>hello</p>
-                </Stack>
+            <Stack gap="4" separator={<StackSeparator />} >
+                    <div className="assistant_role">
+                        <Markdown rehypePlugins={[rehypeRaw]}>
+                            {data}
+                        </Markdown>
+                    </div>
+            </Stack>
         );
     }
 
-    fetchResponseToTheQuestion = (tabName) => {
+    fetchResponseToTheQuestion = () => {
         this.setState({"loading": true});
         var data = new FormData();
         data.append( "json", JSON.stringify({
@@ -80,8 +84,9 @@ export default class Chatbot extends Component {
         })
         .then(response => response.json())
         .then(data => {
-            this.generateChatConversationArea(data)
+            this.setState({'chat_conversation_area': this.generateChatConversationArea(data[0])})
             this.setState({"loading": false})
+            this.setState({"question": ''})
         })
         .catch(err => {
             console.log(err)
@@ -90,32 +95,37 @@ export default class Chatbot extends Component {
     }
 
     generateChatInputBox = () => {
-//         const endElement = this.state.question ? (
-//            <CloseButton
-//              size="xs"
-//              onClick={
-//                event => {this.setState({question: ''})}
-//              }
-//              me="-2"
-//            />
-//          ) : null
+         const clearButton = this.state.question ? (
+            <CloseButton
+              size="xs"
+              onClick={
+                event => {this.setState({question: ''})}
+              }
+              me="-2"
+            />
+          ) : undefined
+
+          const submitButton = this.state.question ? (
+            <IconButton aria-label="Ask AI Questions." onClick={ event => {this.fetchResponseToTheQuestion()} }>
+              <LuSearch />
+            </IconButton>
+          ) : undefined
 
         return (
-//        <InputGroup startElement={<LuSearch />} endElement={endElement }>
-          <InputGroup startElement={<LuSearch />}>
-            <Input
-                variant='subtle'
-                placeholder="Welcome to AI assistance. How can I help you?"
-                value = {this.state.question}
-                onChange={event => {this.setState({question: event.target.value})}}
-                onKeyPress={event => {
-                    if (event.key === 'Enter') {
-                        this.fetchResponseToTheQuestion();
-                    }
-                }}
-            />
-            }
-        </InputGroup>)
+            <InputGroup endElement=<div>{ clearButton }<span>&nbsp;</span>{ submitButton }</div> >
+                <Input
+                    variant='subtle'
+                    placeholder="Welcome to AI assistance. How can I help you?"
+                    value = {this.state.question}
+                    onChange={event => {this.setState({question: event.target.value})}}
+                    onKeyPress={event => {
+                        if (event.key === 'Enter') {
+                            this.fetchResponseToTheQuestion()
+                        }
+                    }}
+                />
+            </InputGroup>
+        )
     }
 
     render() {
