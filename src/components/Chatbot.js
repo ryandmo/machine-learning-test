@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import { Tabs } from '@chakra-ui/react';
-import { Stack, StackSeparator } from '@chakra-ui/react';
+import { Stack, StackSeparator, Box, Flex } from '@chakra-ui/react';
 import { Input, InputGroup, CloseButton } from '@chakra-ui/react';
 import { IconButton } from "@chakra-ui/react"
 import { LuSearch } from "react-icons/lu"
@@ -14,7 +14,7 @@ export default class Chatbot extends Component {
         question_limit: 5,
         loading: false,
         question: '',
-        chat_conversation_area: <Stack gap="4" separator={<StackSeparator />} ><div className="assistant_role"><p>How Can I help you??</p></div></Stack>
+        chat_conversation_area: []
     };
 
     handleQuestionLimit = () => {
@@ -26,6 +26,25 @@ export default class Chatbot extends Component {
         })
         return true;
     };
+
+    Message = (text, role) => {
+        return (
+            <Flex
+              p={4}
+              direction="column"
+              className={role}
+              bg={role === 'user_role' ? 'blue.500' : 'gray.200'}
+              color={role === 'user_role' ? 'white' : 'black'}
+              borderRadius="lg"
+              w="fit-content"
+              alignSelf={role === 'user_role' ? 'flex-end' : 'flex-start'}
+            >
+                <Markdown rehypePlugins={[rehypeRaw]}>
+                    { text }
+                </Markdown>
+            </Flex>
+         )
+    }
 
     generateTabPanel = () => {
         const tabs = {
@@ -44,10 +63,33 @@ export default class Chatbot extends Component {
                     {Object.keys(tabs).map((tabName, TabIndex) =>{
                         if(tabName === "chatbot"){
                              return (<Tabs.Content value={tabName}>
-                                { this.state.chat_conversation_area }
-                                <Stack separator={<StackSeparator />} >&nbsp;</Stack>
+                                <Stack
+                                gap="4" separator={<StackSeparator />}
+                                px={4} py={10} overflow="auto" flex={1}
+                                css={{
+                                    '&::-webkit-scrollbar': {
+                                      width: '4px',
+                                    },
+                                    '&::-webkit-scrollbar-track': {
+                                      width: '6px',
+                                    },
+                                    '&::-webkit-scrollbar-thumb': {
+                                      background: '#d5e3f7',
+                                      borderRadius: '24px',
+                                    },
+                                  }}
+                                >
+                                    {Object.keys(this.state.chat_conversation_area).map((key, index)=>{
+                                        if(key%2 === 0){
+                                            return this.Message(this.state.chat_conversation_area[key], "user_role")
+                                        }else{
+                                            return this.Message(this.state.chat_conversation_area[key], "assistant_role")
+                                        }
+
+                                    })}
+                                </Stack>
                                 { this.generateChatInputBox() }
-                             </Tabs.Content>);
+                             </Tabs.Content>)
                         }else{
                             return (<Tabs.Content value={tabName}>
                                 <p> {tabs[tabName]} </p>
@@ -59,20 +101,12 @@ export default class Chatbot extends Component {
         )
     }
 
-    generateChatConversationArea = (data) => {
-        return (
-            <Stack gap="4" separator={<StackSeparator />} >
-                    <div className="assistant_role">
-                        <Markdown rehypePlugins={[rehypeRaw]}>
-                            {data}
-                        </Markdown>
-                    </div>
-            </Stack>
-        );
-    }
-
     fetchResponseToTheQuestion = () => {
         this.setState({"loading": true});
+        // Add the user question also to the chat history
+        if (this.state.question !== ''){
+            this.state.chat_conversation_area.push(this.state.question);
+        }
         var data = new FormData();
         data.append( "json", JSON.stringify({
             "questions": [this.state.question]
@@ -84,7 +118,7 @@ export default class Chatbot extends Component {
         })
         .then(response => response.json())
         .then(data => {
-            this.setState({'chat_conversation_area': this.generateChatConversationArea(data[0])})
+            this.state.chat_conversation_area.push(data[0])
             this.setState({"loading": false})
             this.setState({"question": ''})
         })
