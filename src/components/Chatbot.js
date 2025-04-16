@@ -1,8 +1,9 @@
 import { Component } from 'react';
 import { Tabs } from '@chakra-ui/react';
-import { Stack, StackSeparator, Box, Flex } from '@chakra-ui/react';
+import { Stack, StackSeparator, Flex } from '@chakra-ui/react';
 import { Input, InputGroup, CloseButton } from '@chakra-ui/react';
 import { IconButton } from "@chakra-ui/react"
+import { Spinner, VStack, Text } from "@chakra-ui/react";
 import { LuSearch } from "react-icons/lu"
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
@@ -12,7 +13,7 @@ const generateChatConversationURL = 'http://192.168.0.160:8001/get_assistance/';
 export default class Chatbot extends Component {
     state = {
         question_limit: 5,
-        loading: false,
+        loading: "none",
         question: '',
         chat_conversation_area: []
     };
@@ -88,6 +89,10 @@ export default class Chatbot extends Component {
 
                                     })}
                                 </Stack>
+                                <VStack colorPalette="teal" display={this.state.loading}>
+                                  <Spinner color="colorPalette.600" size="xl"  />
+                                  <Text color="colorPalette.600">Loading...</Text>
+                                </VStack>
                                 { this.generateChatInputBox() }
                              </Tabs.Content>)
                         }else{
@@ -102,7 +107,7 @@ export default class Chatbot extends Component {
     }
 
     fetchResponseToTheQuestion = () => {
-        this.setState({"loading": true});
+        this.setState({"loading": "flex"});
         // Add the user question also to the chat history
         if (this.state.question !== ''){
             this.state.chat_conversation_area.push(this.state.question);
@@ -119,12 +124,12 @@ export default class Chatbot extends Component {
         .then(response => response.json())
         .then(data => {
             this.state.chat_conversation_area.push(data[0])
-            this.setState({"loading": false})
+            this.setState({"loading": "none"});
             this.setState({"question": ''})
         })
         .catch(err => {
             console.log(err)
-            this.setState({"loading": false})
+            this.setState({"loading": "none"});
         });
     }
 
