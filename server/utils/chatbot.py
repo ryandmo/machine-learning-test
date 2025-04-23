@@ -10,7 +10,7 @@ import markdown
 from huggingface_hub import InferenceClient
 
 from database_wrapper import DatabaseWrapper
-from config import HUGGING_FACE_API, PARTITION_NAME, logger
+from config import HUGGING_FACE_API, logger
 
 """
 This interface connects with hugging face API to get a intelligent response to the questions asked by the user.
@@ -143,19 +143,12 @@ class ChatBot:
         except Exception as ex:
             logger.info("Database already exists")
         questions["responses"] = responses
-        questions = self.add_id_and_creation_data_for_db_record(questions, is_modified, partition)
+        questions = self.database_wrapper.add_id_and_creation_data_for_db_record(
+            questions,
+            is_modified,
+            partition
+        )
         return self.database_wrapper.document_upsert(
             self.database,
             [questions]
         )
-
-    def add_id_and_creation_data_for_db_record(self, data, is_modified = False, partition = None):
-        logger.debug("In add_id_and_creation_data_for_db_record")
-        if not partition:
-            partition = PARTITION_NAME
-        if not is_modified:
-            data["creation_date"] = str(datetime.datetime.utcnow())
-        data["modification_date"] = str(datetime.datetime.utcnow())
-        id_text = hashlib.md5(json.dumps(data["questions"]).encode()).hexdigest()
-        data["_id"] = f"{partition}:{id_text}"
-        return data

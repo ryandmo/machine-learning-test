@@ -50,7 +50,7 @@ export default class Chatbot extends Component {
     generateTabPanel = () => {
         const tabs = {
             "chatbot": "Chatbot responses",
-            "two": "Second!",
+            "sentiment_analysis": "Second!",
             "three": "Third!"
         };
         return (
@@ -95,6 +95,8 @@ export default class Chatbot extends Component {
                                 </VStack>
                                 { this.generateChatInputBox() }
                              </Tabs.Content>)
+                        }else if(tabName === "sentiment_analysis"){
+                            <p> Sentiment Analysis!! </p>
                         }else{
                             return (<Tabs.Content value={tabName}>
                                 <p> {tabs[tabName]} </p>

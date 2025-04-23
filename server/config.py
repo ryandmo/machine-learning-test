@@ -19,7 +19,6 @@ COUCHDB_CONF = {
     "user": "demo",
     "password": "learning"
 }
-PARTITION_NAME = "default"
 
 logger = logging.getLogger("chatbot")
 logging.basicConfig(filename = 'chatbot.log', level = logging.INFO)
@@ -34,3 +33,9 @@ DEFAULT_UI_PORT = "3000"
 DEFAULT_SERVER_PORT = "8000"
 
 ip_address = "localhost"
+
+# Twitter configs:
+twitter = {
+    'API_KEY': '',
+    'API_KEY_SECRET': ''
+}

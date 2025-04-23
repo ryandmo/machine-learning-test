@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from utils.chatbot import ChatBot
+from utils.sentiment import SentimentAnalyzer
 
 from config import ip_address, DEFAULT_UI_PORT, DEFAULT_SERVER_PORT
 
@@ -29,9 +30,21 @@ app.add_middleware(GZipMiddleware, compresslevel=1)
 
 @app.post("/get_assistance/")
 async def get_assistance(request: Request):
-    print(ip_address)
     chatbot = ChatBot()
     data = await request.form()
     return chatbot.respond_to_question(
         json.loads(data["json"])
     )
+
+@app.post("/sentiment-analysis/")
+async def sentiment_analysis(request: Request):
+    sentiments = SentimentAnalyzer()
+    data = await request.form()
+    return sentiments.analyse_sentiment_of_message(
+        json.loads(data["json"])
+    )
+
+@app.get("/generate-sentiment-chart/")
+async def generate_sentiment_chart_data(request: Request):
+    sentiments = SentimentAnalyzer()
+    return sentiments.generate_sentiment_chart_data()

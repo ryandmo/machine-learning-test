@@ -1,8 +1,9 @@
 import requests
 import datetime
 import hashlib
+import json
 
-from config import COUCHDB_CONF, logger, PARTITION_NAME
+from config import COUCHDB_CONF, logger
 
 class DatabaseWrapper:
     def __init__(self) -> None:
@@ -232,3 +233,12 @@ class DatabaseWrapper:
     @staticmethod
     def get_list_from_content(content):
         return list(map(lambda doc: doc["doc"] if "doc" in doc else doc["value"], content))
+
+    def add_id_and_creation_data_for_db_record(self, data, is_modified = False, partition = "default"):
+        logger.debug("In add_id_and_creation_data_for_db_record")
+        if not is_modified:
+            data["creation_date"] = str(datetime.datetime.utcnow())
+        data["modification_date"] = str(datetime.datetime.utcnow())
+        id_text = hashlib.md5(json.dumps(data["questions"]).encode()).hexdigest()
+        data["_id"] = f"{partition}:{id_text}"
+        return data
