@@ -194,7 +194,7 @@ class DatabaseWrapper:
         """
         return self.query_document(operation="create", database=database, partition=partition, data=data)
 
-    def document_read(self, database, document="_design/default/_view/default", data="", partition="default") -> tuple:
+    def document_read(self, database, document="_all_docs", data="", partition="default") -> tuple:
         """
         READ Operation: Fetches document(s) from database
         ---

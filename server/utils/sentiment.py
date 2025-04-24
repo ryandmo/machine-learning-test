@@ -38,7 +38,7 @@ from config import twitter
 from config import HUGGING_FACE_API, PARTITION_NAME, logger
 
 class SentimentAnalyzer:
-    def __init_(self):
+    def __init__(self):
         # self.auth = tweepy.AppAuthHandler(
         #     twitter['API_KEY'],
         #     twitter['API_KEY_SECRET']
@@ -91,19 +91,35 @@ class SentimentAnalyzer:
 
     def analyse_sentiment_of_message(self, content):
         sentiment = self.sentiment_analysis(content)
+        color = 'blue.400'
+        if sentiment[0]['label'] == 'NEG':
+            color = 'red.400'
+        elif sentiment[0]['label'] == 'POS':
+            color = 'green.400'
         tweet = {
-            'content': content,
-            'sentiment': sentiment[0]['label']
+            'questions': content,
+            'sentiment': sentiment[0]['label'],
+            'color': color
         }
         # Save all sentiments into Database
         logger.info(self.save_sentiment_analysis([tweet]))
         return tweet
 
-    def generate_sentiment_chart_data(self):
+    def get_sentiment_chart_data(self):
         # get all records from DB and send the list across
-        pass
+        docs = self.database_wrapper.database_find(
+            database=self.database,
+            query = {
+                'selector': {}
+            }
+        )
+        if docs["status_code"] < 400:
+            return docs["content"]["docs"]
+        else:
+            # In case collection is not created yet
+            return []
 
-    def save_sentiment_analysis(self, data, partition = None):
+    def save_sentiment_analysis(self, data, partition = "default"):
         logger.debug("In save_sentiment_analysis")
         is_modified = True
         # Create database if not already created for packages
@@ -112,12 +128,12 @@ class SentimentAnalyzer:
             is_modified = False
         except Exception as ex:
             logger.info("Database already exists")
-        data = self.database_wrapper.add_id_and_creation_data_for_db_record(
-            data,
+        final_data = [self.database_wrapper.add_id_and_creation_data_for_db_record(
+            i,
             is_modified,
             partition
-        )
+        ) for i in data]
         return self.database_wrapper.document_upsert(
             self.database,
-            data
+            final_data
         )
