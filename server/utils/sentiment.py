@@ -90,20 +90,30 @@ class SentimentAnalyzer:
     #     return self.tweets
 
     def analyse_sentiment_of_message(self, content):
-        sentiment = self.sentiment_analysis(content)
-        color = 'blue.400'
-        if sentiment[0]['label'] == 'NEG':
-            color = 'red.400'
-        elif sentiment[0]['label'] == 'POS':
-            color = 'green.400'
-        tweet = {
-            'questions': content,
-            'sentiment': sentiment[0]['label'],
-            'color': color
-        }
-        # Save all sentiments into Database
-        logger.info(self.save_sentiment_analysis([tweet]))
-        return tweet
+        if len(content['questions']):
+            # Fetch data from DB if available else hit sentiment analyzer
+            sentiment = self.database_wrapper.document_read(
+                database = self.database,
+                document = self.database_wrapper.get_id(content['questions'][0]),
+                partition=""
+            )
+            if sentiment["status_code"] <= 400:
+                logger.info("Found in DB")
+                tweet = {
+                    'questions': sentiment['content']['questions'],
+                    'sentiment': sentiment['content']['sentiment']
+                }
+            else:
+                sentiment = self.sentiment_analysis(content['questions'][0])
+                logger.info("From transformer API")
+                tweet = {
+                    'questions': content['questions'][0],
+                    'sentiment': sentiment[0]['label']
+                }
+                # Save all sentiments into Database
+                logger.info(self.save_sentiment_analysis([tweet]))
+            return tweet
+        return []
 
     def get_sentiment_chart_data(self):
         # get all records from DB and send the list across

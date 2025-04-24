@@ -3,34 +3,72 @@ import { Stack, StackSeparator, Flex } from '@chakra-ui/react';
 import { Textarea, InputGroup, CloseButton } from '@chakra-ui/react';
 import { IconButton } from "@chakra-ui/react"
 import { Spinner, VStack, Text } from "@chakra-ui/react";
-import { LuSearch } from "react-icons/lu"
-import Markdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw';
+import { LuSearch } from "react-icons/lu";
+import { Icon } from "@chakra-ui/react";
+import { HiHeart } from "react-icons/hi";
 
-const dataURL = 'http://192.168.0.160:8001/get_assistance/';
+// Hover Card
+import { Box, HoverCard, Portal, Strong } from "@chakra-ui/react"
 
-export default class Chatbot extends Component {
+// pie chart
+import { Chart, useChart } from "@chakra-ui/charts"
+import { Cell, LabelList, Pie, PieChart, Tooltip } from "recharts"
+
+const dataURL = 'http://192.168.0.160:8001/sentiment-analysis/';
+
+export default class Sentiment extends Component {
     state = {
         loading: "none",
         question: '',
         chat_conversation_area: []
     };
 
-    Message = (text, role) => {
+    getSentimentColor = (sentiment) =>{
+        return (sentiment === 'NEG')? "red.400":(sentiment === 'POS') ? "green.400" : "blue.400";
+    }
+
+    getChartData = () => {
+        const sentimentCount = this.state.chat_conversation_area.reduce((accumulator, current) => {
+          const sentiment = current.sentiment;
+          accumulator[sentiment] = (accumulator[sentiment] || 0) + 1;
+          return accumulator;
+        }, {});
+        return Object.keys(sentimentCount).map((key, index)=>{
+            return {"name": key, "value": sentimentCount[key], "color": this.getSentimentColor(key) }
+        })
+    }
+
+    Message = (record) => {
+        const role = "assistant_role"
         return (
             <Flex
               p={4}
               direction="column"
               className={role}
-              bg={role === 'user_role' ? 'blue.500' : 'gray.200'}
-              color={role === 'user_role' ? 'white' : 'black'}
+              bg="gray.200"
+              color="black"
               borderRadius="lg"
               w="fit-content"
               alignSelf={role === 'user_role' ? 'flex-end' : 'flex-start'}
             >
-                <Markdown rehypePlugins={[rehypeRaw]}>
-                    { text }
-                </Markdown>
+                <HoverCard.Root size="sm">
+                  <HoverCard.Trigger asChild>
+                    <Icon size="lg" color={this.getSentimentColor(record["sentiment"])}>
+                        <HiHeart />
+                    </Icon>
+                  </HoverCard.Trigger>
+                  <Portal>
+                    <HoverCard.Positioner>
+                      <HoverCard.Content maxWidth="240px">
+                        <HoverCard.Arrow />
+                        <Box>
+                          You are feeling <Strong>{ (record["sentiment"] === 'NEG')? "Negative":(record["sentiment"] === 'POS') ? "Positive" : "Neutral" }</Strong>  right now!!
+                        </Box>
+                      </HoverCard.Content>
+                    </HoverCard.Positioner>
+                  </Portal>
+                </HoverCard.Root>
+                 { record["questions"] }
             </Flex>
          )
     }
@@ -55,12 +93,7 @@ export default class Chatbot extends Component {
                       }}
                     >
                         {Object.keys(this.state.chat_conversation_area).map((key, index)=>{
-                            if(key%2 === 0){
-                                return this.Message(this.state.chat_conversation_area[key], "user_role")
-                            }else{
-                                return this.Message(this.state.chat_conversation_area[key], "assistant_role")
-                            }
-
+                            return this.Message(this.state.chat_conversation_area[key])
                         })}
                     </Stack>
                     <VStack colorPalette="teal" display={this.state.loading}>
@@ -68,16 +101,13 @@ export default class Chatbot extends Component {
                       <Text color="colorPalette.600">Loading...</Text>
                     </VStack>
                     { this.generateChatInputBox() }
+                    <SentimentChart data={ this.getChartData() } />
                 </div>
         )
     }
 
     fetchResponseToTheQuestion = () => {
         this.setState({"loading": "flex"});
-        // Add the user question also to the chat history
-        if (this.state.question !== ''){
-            this.state.chat_conversation_area.push(this.state.question);
-        }
         var data = new FormData();
         data.append( "json", JSON.stringify({
             "questions": [this.state.question]
@@ -89,7 +119,7 @@ export default class Chatbot extends Component {
         })
         .then(response => response.json())
         .then(data => {
-            this.state.chat_conversation_area.push(data[0])
+            this.state.chat_conversation_area.push(data)
             this.setState({"loading": "none"});
             this.setState({"question": ''})
         })
@@ -120,7 +150,7 @@ export default class Chatbot extends Component {
             <InputGroup endElement=<div>{ clearButton }<span>&nbsp;</span>{ submitButton }</div> >
                 <Textarea
                     variant='subtle'
-                    placeholder="Welcome to AI assistance. How can I help you?"
+                    placeholder="Let me help you, with analysing your emotions. Enter how you feel!!"
                     value = {this.state.question}
                     onChange={event => {this.setState({question: event.target.value})}}
                     onKeyPress={event => {
@@ -136,4 +166,38 @@ export default class Chatbot extends Component {
     render() {
         return this.generateConversationArea()
     }
+}
+
+
+const SentimentChart = (data) => {
+    const chart = useChart(data);
+    return (
+        <Chart.Root boxSize="320px" mx="auto" chart={chart}>
+          <PieChart>
+            <Tooltip
+              cursor={false}
+              animationDuration={100}
+              content={<Chart.Tooltip hideLabel />}
+            />
+            <Pie
+              isAnimationActive={true}
+              data={chart.data}
+              dataKey={chart.key("value")}
+              outerRadius={100}
+              innerRadius={0}
+              labelLine={true}
+              label={({ name, index }) => {
+                const { value } = chart.data[index ?? -1]
+                const percent = value / chart.getTotal("value")
+                return `${name}: ${(percent * 100).toFixed(1)}%`
+              }}
+            >
+              <LabelList position="inside" fill="white" stroke="none" />
+              {chart.data.map((item) => (
+                <Cell key={item.questions} fill={chart.color(item.color)} />
+              ))}
+            </Pie>
+          </PieChart>
+        </Chart.Root>
+    )
 }

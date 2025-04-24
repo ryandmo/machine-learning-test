@@ -90,6 +90,7 @@ class DatabaseWrapper:
                 data["modification_date"] = str(datetime.datetime.utcnow())
                 response = self.session.post(f"{COUCHDB_CONF['connection_string']}/{database}", headers=self.headers, json=data)
             if operation == "read":
+                print(f"{COUCHDB_CONF['connection_string']}/{path}/{document}")
                 response = self.session.get(f"{COUCHDB_CONF['connection_string']}/{path}/{document}", headers=self.headers,
                                             params=data)
             if operation == "update":
@@ -234,11 +235,14 @@ class DatabaseWrapper:
     def get_list_from_content(content):
         return list(map(lambda doc: doc["doc"] if "doc" in doc else doc["value"], content))
 
+    def get_id(self, question, partition = "default"):
+        id_text = hashlib.md5(json.dumps(question).encode()).hexdigest()
+        return f"{partition}:{id_text}"
+
     def add_id_and_creation_data_for_db_record(self, data, is_modified = False, partition = "default"):
         logger.debug("In add_id_and_creation_data_for_db_record")
         if not is_modified:
             data["creation_date"] = str(datetime.datetime.utcnow())
         data["modification_date"] = str(datetime.datetime.utcnow())
-        id_text = hashlib.md5(json.dumps(data["questions"]).encode()).hexdigest()
-        data["_id"] = f"{partition}:{id_text}"
+        data["_id"] = self.get_id(data["questions"], partition = partition)
         return data
