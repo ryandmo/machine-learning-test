@@ -44,7 +44,7 @@ async def sentiment_analysis(request: Request):
         json.loads(data["json"])
     )
 
-@app.get("/generate-sentiment-chart/")
-async def generate_sentiment_chart_data(request: Request):
+@app.get("/fetch-sentiment-history/")
+async def fetch_sentiment_history(request: Request):
     sentiments = SentimentAnalyzer()
-    return sentiments.get_sentiment_chart_data()
+    return sentiments.fetch_sentiment_history()

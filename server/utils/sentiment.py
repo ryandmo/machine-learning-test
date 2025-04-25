@@ -115,7 +115,7 @@ class SentimentAnalyzer:
             return tweet
         return []
 
-    def get_sentiment_chart_data(self):
+    def fetch_sentiment_history(self):
         # get all records from DB and send the list across
         docs = self.database_wrapper.database_find(
             database=self.database,

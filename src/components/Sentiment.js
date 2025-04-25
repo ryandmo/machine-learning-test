@@ -6,6 +6,7 @@ import { Spinner, VStack, Text } from "@chakra-ui/react";
 import { LuSearch } from "react-icons/lu";
 import { Icon } from "@chakra-ui/react";
 import { HiHeart } from "react-icons/hi";
+import { Button } from "@chakra-ui/react";
 
 // Hover Card
 import { Box, HoverCard, Portal, Strong } from "@chakra-ui/react"
@@ -15,12 +16,14 @@ import { Chart, useChart } from "@chakra-ui/charts"
 import { Cell, LabelList, Pie, PieChart, Tooltip } from "recharts"
 
 const dataURL = 'http://192.168.0.160:8001/sentiment-analysis/';
+const historyURL = 'http://192.168.0.160:8001/fetch-sentiment-history/';
 
 export default class Sentiment extends Component {
     state = {
         loading: "none",
         question: '',
-        chat_conversation_area: []
+        chat_conversation_area: [],
+        history_button_loading: false
     };
 
     getSentimentColor = (sentiment) =>{
@@ -75,7 +78,13 @@ export default class Sentiment extends Component {
 
     generateConversationArea = () => {
         return (
-                <div>
+                <Stack h="750px">
+                    <Stack colorPalette="teal" w="5/6">
+                        <Button w="300px" loading={ this.state.history_button_loading } onClick={ event => {this.showSentimentHistory()}} loadingText="Loading" spinnerPlacement="start">
+                            Fetch Sentiment Analysis History
+                        </Button>
+                        <SentimentChart data={ this.getChartData() } />
+                    </Stack>
                     <Stack
                     gap="4" separator={<StackSeparator />}
                     px={4} py={10} overflow="auto" flex={1}
@@ -101,8 +110,7 @@ export default class Sentiment extends Component {
                       <Text color="colorPalette.600">Loading...</Text>
                     </VStack>
                     { this.generateChatInputBox() }
-                    <SentimentChart data={ this.getChartData() } />
-                </div>
+                </Stack>
         )
     }
 
@@ -126,6 +134,25 @@ export default class Sentiment extends Component {
         .catch(err => {
             console.log(err)
             this.setState({"loading": "none"});
+        });
+    }
+
+    showSentimentHistory = (e) => {
+        // retrieve all records and render on UI.
+        this.setState({'history_button_loading': true})
+        fetch(historyURL, {
+            mode: 'cors',
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Wipe the local cache and load everything from DB
+            this.setState({"chat_conversation_area": data});
+            this.setState({'history_button_loading': false});
+        })
+        .catch(err => {
+            console.log(err)
+            this.setState({'history_button_loading': false});
         });
     }
 
