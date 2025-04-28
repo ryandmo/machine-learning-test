@@ -35,7 +35,7 @@ from transformers import pipeline
 from database_wrapper import DatabaseWrapper
 
 from config import twitter
-from config import HUGGING_FACE_API, PARTITION_NAME, logger
+from config import HUGGING_FACE_API, logger
 
 class SentimentAnalyzer:
     def __init__(self):
@@ -47,7 +47,7 @@ class SentimentAnalyzer:
         #     self.auth,
         #     wait_on_rate_limit=True
         # )
-        self.sentiment_analysis = pipeline(model="finiteautomata/bertweet-base-sentiment-analysis")
+        self.sentiment_analysis = pipeline(model="distilbert-base-uncased-finetuned-sst-2-english")
         # self.tweets = []
         # self.tweet_count = 1000
         self.database = "sentiment_analysis"

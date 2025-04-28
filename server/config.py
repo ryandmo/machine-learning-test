@@ -39,3 +39,6 @@ twitter = {
     'API_KEY': '',
     'API_KEY_SECRET': ''
 }
+
+# File storage location
+IMAGE_DIR = "/app/img/"
