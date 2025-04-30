@@ -66,3 +66,8 @@ def get_image(filename: str):
         return FileResponse(filepath, media_type="image/jpeg")
     else:
         return FileResponse("{}{}".format(IMAGE_DIR, "default.jpg"), media_type="image/jpeg")
+
+@app.get("/fetch-image-caption-history/")
+def fetch_image_caption_history():
+    image_caption_gen = ImageCaptionGenerator()
+    return image_caption_gen.fetch_history()

@@ -73,6 +73,22 @@ class ImageCaptionGenerator:
             final_data
         )
 
-
+    def fetch_history(self):
+        # get all records from DB and send the list across
+        docs = self.database_wrapper.database_find(
+            database=self.database,
+            query = {
+                'selector': {
+                    "questions": {
+                        "$ne": "default.jpg"
+                    }
+                }
+            }
+        )
+        if docs["status_code"] < 400:
+            return docs["content"]["docs"]
+        else:
+            # In case collection is not created yet
+            return []
 
 #USING PIPELINE MAKE A CALL TO CHATBOT QUESTIONS FEATURE, JUST TO COMPARE THE OUTPUTS AND API LIMITS

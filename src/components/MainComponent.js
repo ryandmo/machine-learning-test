@@ -3,6 +3,7 @@ import { Heading } from "@chakra-ui/react";
 import { Tabs } from '@chakra-ui/react';
 import Chatbot from "./Chatbot";
 import Sentiment from './Sentiment';
+import ImageCaptioning from './ImageCaptioning';
 
 export default class MainComponent extends Component {
     state = {
@@ -10,9 +11,9 @@ export default class MainComponent extends Component {
 
 generateTabPanel = () => {
         const tabs = {
-            "chatbot": "Chatbot responses",
-            "sentiment analysis": "Second!",
-            "three": "Third!"
+            "AI Assistance": <Chatbot />,
+            "Sentiment Analysis": <Sentiment />,
+            "Image Captioning": <ImageCaptioning />
         };
         return (
             <div>
@@ -23,19 +24,9 @@ generateTabPanel = () => {
                         })}
                     </Tabs.List>
                     {Object.keys(tabs).map((tabName, TabIndex) =>{
-                        if(tabName === "chatbot"){
-                            return (<Tabs.Content value="chatbot">
-                                <Chatbot />
-                            </Tabs.Content>)
-                        }else if(tabName === "sentiment analysis"){
-                           return (<Tabs.Content value={tabName}>
-                               <Sentiment />
-                            </Tabs.Content>)
-                        }else{
-                            return (<Tabs.Content value={tabName}>
-                                <p> {tabs[tabName]} </p>
-                            </Tabs.Content>)
-                        }
+                        return (<Tabs.Content value={tabName}>
+                            { tabs[tabName] }
+                        </Tabs.Content>)
                     })}
                 </Tabs.Root>
             </div>
