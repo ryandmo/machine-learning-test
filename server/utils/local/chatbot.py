@@ -2,12 +2,10 @@
 Build a simple chatbot interface where users can type messages, and an AI model responds intelligently.
 The frontend will be a clean React UI, and the backend will use Python to interact with a free AI API to generate responses.
 """
-import json
-import hashlib
-import datetime
-import markdown
 
-from huggingface_hub import InferenceClient
+import markdown
+from huggingface_hub import login
+from transformers import pipeline
 
 from database_wrapper import DatabaseWrapper
 from config import HUGGING_FACE_API, logger
@@ -20,61 +18,21 @@ This library will be based on text generation model,
 
 class ChatBot:
     def __init__(self):
-        """
-        Initializes an instance of the class and sets up the InferenceClient.
-
-        This constructor method is called when a new instance of the class is created.
-        It initializes the InferenceClient with the specified provider, API key, and model
-        from the HUGGING_FACE_API configuration.
-
-        Attributes:
-            client (InferenceClient): An instance of the InferenceClient used for making API calls.
-        """
-        self.client = InferenceClient(
-            provider=HUGGING_FACE_API["provider"],  # The provider for the inference API.
-            api_key=HUGGING_FACE_API["api_key"],  # The API key for authenticating requests.
-            model=HUGGING_FACE_API["model"]  # The model to be used for inference.
-        )
+        # login(token=HUGGING_FACE_API["api_key"])
+        # A Decently intelligent model, with rational thinking, however it requires a strong GPU to run locally.
+        # If anyone has powerful GPU available they can use this model.
+        # For getting a glace at the responses of this model checkout the functioning by switching to remote module.
+        # self.chatbot = pipeline(model="deepseek-ai/DeepSeek-R1")
+        # using a low level chat model with intelligence comparison to a girls brain, for testing purpose
+        self.chatbot = pipeline(model="distilgpt2")
         self.database = "chatbot"
         self.database_wrapper = DatabaseWrapper() # creating a database operation handler.
 
-    def respond_to_question(self, questions: list):
-        """
-        Responds to a list of questions by sending them to a chat completion API.
-
-        Args:
-            questions (list): A list of questions to be sent to the API.
-
-        Returns:
-            list: A list of responses, where each response corresponds to a question.
-        """
-        messages = []  # Initialize a list to hold the formatted messages for the API request.
-        output = []  # Initialize a list to hold the final output responses.
-
-        # Format each question into the required message structure.
-        messages.append(
-            {
-                "role": "user",  # The role of the message sender.
-                "content": questions["questions"],  # The content of the question.
-            }
-        )
-
-        # Use the max allowed token size, i.e. max_tokens = 1024 for free API.
-        # In case a higher number of response tokens are expected, consider using a paid version.
-        completion = self.client.chat_completion(messages)
-
-        # Process the choices returned by the API.
-        for choice in completion.choices:
-            # Uncomment the following lines if you need to access finish_reason or seed.
-            # finish_reason = choice.finish_reason
-            # seed = choice.seed
-            output.append(
-                self.initial_markdown_formatting(choice.message.content)
-            )
-
-        logger.debug(output)
-        logger.info((self.save_chat_history(questions, output)))
-        return output  # Return the list of responses
+    def respond_to_question(self, questions: []):
+        result = self.chatbot(questions["questions"][0])
+        result[0].update({"questions": questions["questions"][0]})
+        logger.info(self.save_chat_history(result[0]))
+        return [result[0]["generated_text"].replace('\n', '<br /> ')]
 
     def open_order_unordered_list(self, line, list_first_occurence, ordered_list):
         if ordered_list:
@@ -133,7 +91,7 @@ class ChatBot:
 
         return " <br /> ".join(final_content)
 
-    def save_chat_history(self, questions, responses, partition = None):
+    def save_chat_history(self, data, partition = None):
         logger.debug("In save_chat_history")
         is_modified = True
         # Create database if not already created for packages
@@ -142,13 +100,12 @@ class ChatBot:
             is_modified = False
         except Exception as ex:
             logger.info("Database already exists")
-        questions["responses"] = responses
-        questions = self.database_wrapper.add_id_and_creation_data_for_db_record(
-            questions,
-            is_modified,
-            partition
-        )
+
         return self.database_wrapper.document_upsert(
             self.database,
-            [questions]
+            self.database_wrapper.add_id_and_creation_data_for_db_record(
+                data,
+                is_modified,
+                partition
+            )
         )

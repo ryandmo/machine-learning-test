@@ -15,8 +15,8 @@ import { Box, HoverCard, Portal, Strong } from "@chakra-ui/react"
 import { Chart, useChart } from "@chakra-ui/charts"
 import { Cell, LabelList, Pie, PieChart, Tooltip } from "recharts"
 
-const dataURL = 'http://192.168.0.160:8001/sentiment-analysis/';
-const historyURL = 'http://192.168.0.160:8001/fetch-sentiment-history/';
+const dataURL = 'http://192.168.0.160:8002/sentiment-analysis/';
+const historyURL = 'http://192.168.0.160:8002/fetch-sentiment-history/';
 
 export default class Sentiment extends Component {
     state = {

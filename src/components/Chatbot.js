@@ -7,7 +7,7 @@ import { LuSearch } from "react-icons/lu"
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 
-const dataURL = 'http://192.168.0.160:8001/get_assistance/';
+const dataURL = 'http://192.168.0.160:8002/get_assistance/';
 
 export default class Chatbot extends Component {
     state = {

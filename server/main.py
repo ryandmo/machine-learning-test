@@ -6,12 +6,17 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi import File, UploadFile
 from fastapi.responses import FileResponse
 
-from utils.chatbot import ChatBot
-from utils.sentiment import SentimentAnalyzer
-from utils.image_caption_generator import ImageCaptionGenerator
-
 from config import ip_address, DEFAULT_UI_PORT, DEFAULT_SERVER_PORT
-from config import IMAGE_DIR
+from config import IMAGE_DIR, AI_API_REMOTE
+
+if not AI_API_REMOTE:
+    # Import the local AI Models
+    from utils.local.chatbot import ChatBot
+    from utils.local.sentiment import SentimentAnalyzer
+    from utils.local.image_caption_generator import ImageCaptionGenerator
+else:
+    # Import the remote AI Models
+    from utils.remote.chatbot import ChatBot
 
 CORS_ORIGINS = [
     "http://localhost:{}".format(DEFAULT_UI_PORT),
