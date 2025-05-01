@@ -3,11 +3,13 @@ import os
 import sys
 import socket
 
+AI_API_REMOTE = False
+
 #Hugging face API configs
 HUGGING_FACE_API = {
     "api_key": '',
     "provider": 'together',
-    "model": "deepseek-ai/DeepSeek-R1"
+    "model": ""
 }
 
 #POSSIBLE_FINISH_REASON = ('stop', 'length', 'error', 'eos')
