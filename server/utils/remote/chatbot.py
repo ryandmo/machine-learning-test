@@ -71,7 +71,8 @@ class ChatBot:
             )
 
         logger.debug(output)
-        logger.info((self.save_chat_history(questions, output)))
+        questions["responses"] = output
+        logger.info(self.database_wrapper.save_data([questions], self.database))
         return output  # Return the list of responses
 
     def open_order_unordered_list(self, line, list_first_occurence, ordered_list):
@@ -130,23 +131,3 @@ class ChatBot:
             final_content.append(line)
 
         return " <br /> ".join(final_content)
-
-    def save_chat_history(self, questions, responses, partition = None):
-        logger.debug("In save_chat_history")
-        is_modified = True
-        # Create database if not already created for packages
-        try:
-            self.database_wrapper.database_create(self.database)
-            is_modified = False
-        except Exception as ex:
-            logger.info("Database already exists")
-        questions["responses"] = responses
-        questions = self.database_wrapper.add_id_and_creation_data_for_db_record(
-            questions,
-            is_modified,
-            partition
-        )
-        return self.database_wrapper.document_upsert(
-            self.database,
-            [questions]
-        )

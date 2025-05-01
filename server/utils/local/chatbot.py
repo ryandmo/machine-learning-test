@@ -31,7 +31,7 @@ class ChatBot:
     def respond_to_question(self, questions: []):
         result = self.chatbot(questions["questions"][0])
         result[0].update({"questions": questions["questions"][0]})
-        logger.info(self.save_chat_history(result[0]))
+        logger.info(self.database_wrapper.save_data(result[0], self.database))
         return [result[0]["generated_text"].replace('\n', '<br /> ')]
 
     def open_order_unordered_list(self, line, list_first_occurence, ordered_list):
@@ -90,22 +90,3 @@ class ChatBot:
             final_content.append(line)
 
         return " <br /> ".join(final_content)
-
-    def save_chat_history(self, data, partition = None):
-        logger.debug("In save_chat_history")
-        is_modified = True
-        # Create database if not already created for packages
-        try:
-            self.database_wrapper.database_create(self.database)
-            is_modified = False
-        except Exception as ex:
-            logger.info("Database already exists")
-
-        return self.database_wrapper.document_upsert(
-            self.database,
-            self.database_wrapper.add_id_and_creation_data_for_db_record(
-                data,
-                is_modified,
-                partition
-            )
-        )

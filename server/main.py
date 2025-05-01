@@ -57,7 +57,7 @@ async def sentiment_analysis(request: Request):
 @app.get("/fetch-sentiment-history/")
 async def fetch_sentiment_history(request: Request):
     sentiments = SentimentAnalyzer()
-    return sentiments.fetch_sentiment_history()
+    return sentiments.database_wrapper.fetch_history(sentiments.database, {})
 
 @app.post("/generate-caption-for-image/")
 def generate_caption_for_image(input_file: UploadFile = File(...)):
@@ -75,4 +75,13 @@ def get_image(filename: str):
 @app.get("/fetch-image-caption-history/")
 def fetch_image_caption_history():
     image_caption_gen = ImageCaptionGenerator()
-    return image_caption_gen.fetch_history()
+    return image_caption_gen.database_wrapper.fetch_history(
+        image_caption_gen.database,
+        {
+            'selector': {
+                "questions": {
+                    "$ne": "default.jpg"
+                }
+            }
+        }
+    )

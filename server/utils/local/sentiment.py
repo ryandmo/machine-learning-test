@@ -39,55 +39,9 @@ from config import HUGGING_FACE_API, logger
 
 class SentimentAnalyzer:
     def __init__(self):
-        # self.auth = tweepy.AppAuthHandler(
-        #     twitter['API_KEY'],
-        #     twitter['API_KEY_SECRET']
-        # )
-        # self.api = tweepy.API(
-        #     self.auth,
-        #     wait_on_rate_limit=True
-        # )
-        self.sentiment_analysis = pipeline(model="distilbert-base-uncased-finetuned-sst-2-english")
-        # self.tweets = []
-        # self.tweet_count = 1000
+        self.sentiment_analysis = pipeline(model = "distilbert-base-uncased-finetuned-sst-2-english")
         self.database = "sentiment_analysis"
         self.database_wrapper = DatabaseWrapper()  # creating a database operation handler.
-
-    # Helper function for handling pagination in our search and handle rate limits
-    # def limit_handled(self, cursor):
-    #     while True:
-    #         try:
-    #             yield cursor.next()
-    #         except tweepy.errors.TooManyRequests:
-    #             print('Reached rate limit. Sleeping for >15 minutes')
-    #             time.sleep(15 * 61)
-    #         except StopIteration:
-    #             break
-    #
-    # def get_tweets(self):
-    #     # Define the term you will be using for searching tweets
-    #     query = '#NFTs'
-    #     query = query + ' -filter:retweets'
-    #
-    #     # Let's search for tweets using Tweepy
-    #     return self.limit_handled(tweepy.Cursor(self.api.search,
-    #          q = query,
-    #          tweet_mode = 'extended',
-    #          lang = 'en',
-    #          count = self.tweet_count,
-    #          result_type = "recent").items(self.tweet_count))
-    #
-    # def sentiment_analysis_of_feed_tweets(self):
-    #     search = self.get_tweets()
-    #     for tweet in search:
-    #         try:
-    #             content = tweet.full_text
-    #             sentiment = self.sentiment_analysis(content)
-    #             self.tweets.append({'tweet': content, 'sentiment': sentiment[0]['label']})
-    #
-    #         except Exception as ex:
-    #             print(ex)
-    #     return self.tweets
 
     def analyse_sentiment_of_message(self, content):
         if len(content['questions']):
@@ -95,7 +49,7 @@ class SentimentAnalyzer:
             sentiment = self.database_wrapper.document_read(
                 database = self.database,
                 document = self.database_wrapper.get_id(content['questions'][0]),
-                partition=""
+                partition = ""
             )
             if sentiment["status_code"] <= 400:
                 logger.info("Found in DB")
@@ -111,39 +65,6 @@ class SentimentAnalyzer:
                     'sentiment': sentiment[0]['label']
                 }
                 # Save all sentiments into Database
-                logger.info(self.save_sentiment_analysis([tweet]))
+                logger.info(self.database_wrapper.save_data([tweet], self.database))
             return tweet
         return []
-
-    def fetch_sentiment_history(self):
-        # get all records from DB and send the list across
-        docs = self.database_wrapper.database_find(
-            database=self.database,
-            query = {
-                'selector': {}
-            }
-        )
-        if docs["status_code"] < 400:
-            return docs["content"]["docs"]
-        else:
-            # In case collection is not created yet
-            return []
-
-    def save_sentiment_analysis(self, data, partition = "default"):
-        logger.debug("In save_sentiment_analysis")
-        is_modified = True
-        # Create database if not already created for packages
-        try:
-            self.database_wrapper.database_create(self.database)
-            is_modified = False
-        except Exception as ex:
-            logger.info("Database already exists")
-        final_data = [self.database_wrapper.add_id_and_creation_data_for_db_record(
-            i,
-            is_modified,
-            partition
-        ) for i in data]
-        return self.database_wrapper.document_upsert(
-            self.database,
-            final_data
-        )

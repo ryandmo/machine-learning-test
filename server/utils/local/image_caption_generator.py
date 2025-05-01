@@ -51,44 +51,5 @@ class ImageCaptionGenerator:
         img = Image.open(file_name)
         result = self.image_caption_generator(img)
         result[0].update({"questions": input_file.filename})
-        logger.info(self.save_image_caption(result))
+        logger.info(self.database_wrapper.save_data(result, self.database))
         return result[0]
-
-    def save_image_caption(self, data, partition = "default"):
-        logger.debug("In save_image_caption")
-        is_modified = True
-        # Create database if not already created for packages
-        try:
-            self.database_wrapper.database_create(self.database)
-            is_modified = False
-        except Exception as ex:
-            logger.info("Database already exists")
-        final_data = [self.database_wrapper.add_id_and_creation_data_for_db_record(
-            i,
-            is_modified,
-            partition
-        ) for i in data]
-        return self.database_wrapper.document_upsert(
-            self.database,
-            final_data
-        )
-
-    def fetch_history(self):
-        # get all records from DB and send the list across
-        docs = self.database_wrapper.database_find(
-            database=self.database,
-            query = {
-                'selector': {
-                    "questions": {
-                        "$ne": "default.jpg"
-                    }
-                }
-            }
-        )
-        if docs["status_code"] < 400:
-            return docs["content"]["docs"]
-        else:
-            # In case collection is not created yet
-            return []
-
-#USING PIPELINE MAKE A CALL TO CHATBOT QUESTIONS FEATURE, JUST TO COMPARE THE OUTPUTS AND API LIMITS

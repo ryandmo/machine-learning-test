@@ -246,3 +246,38 @@ class DatabaseWrapper:
         data["modification_date"] = str(datetime.datetime.utcnow())
         data["_id"] = self.get_id(data["questions"], partition = partition)
         return data
+
+    def save_data(self, data, database, partition = None):
+        logger.debug("Saving data into database")
+        is_modified = True
+        # Create database if not already created for packages
+        try:
+            self.database_create(database)
+            is_modified = False
+        except Exception as ex:
+            logger.info("Database already exists")
+
+        return self.document_upsert(
+            database,
+            self.add_id_and_creation_data_for_db_record(
+                [self.add_id_and_creation_data_for_db_record(
+                    i,
+                    is_modified,
+                    partition
+                ) for i in data],
+                is_modified,
+                partition
+            )
+        )
+
+    def fetch_history(self, database, selector_query):
+        # get all records from DB and send the list across
+        docs = self.database_find(
+            database = database,
+            query = selector_query
+        )
+        if docs["status_code"] < 400:
+            return docs["content"]["docs"]
+        else:
+            # In case collection is not created yet
+            return []
