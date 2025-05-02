@@ -27,31 +27,34 @@
 ---
 """
 
-# need to learn Model training using AutoNLP and fine tuned approach, check if its universal or huggingface specific.
+import requests
+from functools import reduce
 
-# import tweepy
-import time
-from transformers import pipeline
+from config import HUGGING_FACE_API, logger
 from database_wrapper import DatabaseWrapper
 
-from config import twitter
-from config import HUGGING_FACE_API, logger
 
 class SentimentAnalyzer:
     """
-    A class to analyze the sentiment of messages using a pre-trained sentiment analysis model.
+    A class to analyze the sentiment of messages using a pre-trained model
+    from Hugging Face and store the results in a database.
 
     Attributes:
-        sentiment_analysis: A sentiment analysis pipeline initialized with a specific model.
-        database: The name of the database used for storing sentiment analysis results.
-        database_wrapper: An instance of DatabaseWrapper for handling database operations.
+        headers (dict): Headers required for API authentication.
+        model (str): The model identifier for the sentiment analysis.
+        database (str): The name of the database used for storing sentiment data.
+        database_wrapper (DatabaseWrapper): An instance of DatabaseWrapper for database operations.
     """
 
     def __init__(self):
         """
-        Initializes the SentimentAnalyzer with a sentiment analysis pipeline and a database wrapper.
+        Initializes the SentimentAnalyzer with API headers, model name,
+        database name, and a database operation handler.
         """
-        self.sentiment_analysis = pipeline(model="distilbert-base-uncased-finetuned-sst-2-english")
+        self.headers = {
+            "Authorization": f"Bearer {HUGGING_FACE_API['key']}"
+        }
+        self.model = "distilbert-base-uncased-finetuned-sst-2-english"
         self.database = "sentiment_analysis"
         self.database_wrapper = DatabaseWrapper()  # creating a database operation handler.
 
@@ -59,21 +62,25 @@ class SentimentAnalyzer:
         """
         Analyzes the sentiment of a message based on the provided content.
 
-        If the sentiment for the question is already stored in the database, it retrieves it.
-        Otherwise, it uses the sentiment analysis model to analyze the sentiment of the question.
+        If the sentiment for the question is already stored in the database,
+        it retrieves the sentiment from there. If not, it sends a request to
+        the Hugging Face API to analyze the sentiment and saves the result
+        in the database.
 
         Args:
-            content (dict): A dictionary containing the 'questions' key with a list of questions.
+            content (dict): A dictionary containing the questions to analyze.
 
         Returns:
-            dict: A dictionary containing the question and its corresponding sentiment if available,
-                  or an empty list if no questions are provided.
+            dict: A dictionary containing the question and its corresponding sentiment
+                  if available, otherwise an empty list.
         """
         if len(content['questions']):
             # Fetch data from DB if available else hit sentiment analyzer
             sentiment = self.database_wrapper.document_read(
                 database=self.database,
-                document=self.database_wrapper.get_id(content['questions'][0]),
+                document=self.database_wrapper.get_id(
+                    content['questions'][0]
+                ),
                 partition="default"
             )
             if sentiment["status_code"] <= 400:
@@ -83,13 +90,25 @@ class SentimentAnalyzer:
                     'sentiment': sentiment['content']['sentiment']
                 }
             else:
-                sentiment = self.sentiment_analysis(content['questions'][0])
-                logger.info("From transformer API")
+                sentiment = requests.post(
+                    f"{HUGGING_FACE_API['api']}{self.model}",
+                    headers=self.headers,
+                    json=content['questions']
+                ).json()
+                stronger_sentiment = reduce(
+                    lambda x, y: x if x["score"] > y["score"] else y,
+                    sentiment[0]
+                )
                 tweet = {
                     'questions': content['questions'][0],
-                    'sentiment': sentiment[0]['label']
+                    'sentiment': stronger_sentiment['label']
                 }
                 # Save all sentiments into Database
-                logger.info(self.database_wrapper.save_data(tweet, self.database))
+                logger.info(
+                    self.database_wrapper.save_data(
+                        tweet,
+                        self.database
+                    )
+                )
             return tweet
         return []

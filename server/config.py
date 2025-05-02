@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import socket
 
 AI_API_REMOTE = False
 
@@ -9,11 +8,8 @@ AI_API_REMOTE = False
 HUGGING_FACE_API = {
     "api_key": '',
     "provider": 'together',
-    "model": ""
+    'url': 'https://api-inference.huggingface.co/models/'
 }
-
-#POSSIBLE_FINISH_REASON = ('stop', 'length', 'error', 'eos')
-#INCOMPLETE_OR_FAILED_FINISHED_REASON = ('length', 'error')
 
 #COUCH DB config
 COUCHDB_CONF = {
@@ -22,8 +18,9 @@ COUCHDB_CONF = {
     "password": "learning"
 }
 
-logger = logging.getLogger("chatbot")
-logging.basicConfig(filename = 'chatbot.log', level = logging.INFO)
+# Create an App logger, which will be used for debugging.
+logger = logging.getLogger("ai_assistance")
+logging.basicConfig(filename = 'ai_assistance.log', level = logging.INFO)
 
 # Add utils directory to system paths
 child_dir = os.path.dirname(__file__)

@@ -17,6 +17,13 @@ This library will be based on text generation model,
 
 class ChatBot:
     def __init__(self):
+        """
+        Initializes the ChatBot instance.
+
+        Sets up the chatbot model and database wrapper.
+        The model used is a lightweight version (distilgpt2) for testing purposes.
+        A more advanced model can be used if a powerful GPU is available.
+        """
         # login(token=HUGGING_FACE_API["api_key"])
         # A Decently intelligent model, with rational thinking, however it requires a strong GPU to run locally.
         # If anyone has powerful GPU available they can use this model.
@@ -25,9 +32,19 @@ class ChatBot:
         # using a low level chat model with intelligence comparison to a girls brain, for testing purpose
         self.chatbot = pipeline(model="distilgpt2")
         self.database = "chatbot"
-        self.database_wrapper = DatabaseWrapper() # creating a database operation handler.
+        self.database_wrapper = DatabaseWrapper()  # Creating a database operation handler.
 
     def respond_to_question(self, questions: []):
+        """
+        Generates a response to the provided question.
+
+        Args:
+            questions (list): A list containing a dictionary with a key "questions"
+                              that holds the question string.
+
+        Returns:
+            list: A list containing the generated response text with line breaks replaced by HTML <br /> tags.
+        """
         result = self.chatbot(questions["questions"][0])
         result[0].update({"questions": questions["questions"][0]})
         logger.info(self.database_wrapper.save_data(result[0], self.database))
