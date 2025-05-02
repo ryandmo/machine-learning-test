@@ -6,6 +6,8 @@ The frontend will be a clean React UI, and the backend will use Python to intera
 import markdown
 
 from huggingface_hub import InferenceClient
+from enum import Enum
+from typing import Tuple, Optional, Dict
 
 from database_wrapper import DatabaseWrapper
 from config import HUGGING_FACE_API, logger
@@ -15,6 +17,23 @@ This interface connects with hugging face API to get a intelligent response to t
 Currently using a developer free tier hugging face account, for enterprise purposes buying a "Enterprise license" is recommended.
 This library will be based on text generation model, 
 """
+
+class ListType(Enum):
+    """Enum to represent list types."""
+    ORDERED = "ol"
+    UNORDERED = "ul"
+    NONE = None
+
+# Constants for Markdown patterns
+UNORDERED_LIST_MARKERS = {"- ", "+ ", "* "}
+ORDERED_LIST_MARKER = ". "
+HEADER_MARKERS = {
+    "# ": {"start": '<Header size="6xl"><b>', "end": "</b></Header>"},
+    "## ": {"start": '<Header size="5xl"><b>', "end": "</b></Header>"},
+    "### ": {"start": '<Header size="4xl"><b>', "end": "</b></Header>"},
+}
+HORIZONTAL_RULE_MARKERS = {"___": "<hr />", "---": "<hr />", "***": "<hr />"}
+LINE_BREAK = " <br /> "
 
 class ChatBot:
     def __init__(self):
@@ -67,7 +86,7 @@ class ChatBot:
             # finish_reason = choice.finish_reason
             # seed = choice.seed
             output.append(
-                self.initial_markdown_formatting(choice.message.content)
+                self.format_markdown_to_html(choice.message.content)
             )
 
         logger.debug(output)
@@ -75,59 +94,119 @@ class ChatBot:
         logger.info(self.database_wrapper.save_data([questions], self.database))
         return output  # Return the list of responses
 
-    def open_order_unordered_list(self, line, list_first_occurence, ordered_list):
-        if ordered_list:
-            line = f"{line.replace(line[:3], '<li>')}</li>"
-        else:
-            line = f"{line.replace(line[:2], '<li>')}</li>"
-        if list_first_occurence is None:
-            list_first_occurence = True
-            if ordered_list:
-                line = f"<ol>{line}"
-            else:
-                line = f"<ul>{line}"
-        return (list_first_occurence, line)
 
-    def close_order_unordered_list(self, list_first_occurence, ordered_list):
-        if list_first_occurence:
-            if ordered_list:
-                line = f"</ol>"
-            else:
-                line = f"</ul>"
-        else:
-            line = ''
-        return (None, line)
+    def open_list_item(self,
+        line: str, is_first: Optional[bool], list_type: ListType
+    ) -> Tuple[Optional[bool], str]:
+        """
+        Convert a Markdown list item to HTML and open the list if it's the first item.
 
-    def initial_markdown_formatting(self, data):
+        Args:
+            line: The input Markdown line.
+            is_first: Whether this is the first list item.
+            list_type: The type of list (ordered or unordered).
+
+        Returns:
+            A tuple of (is_first flag, formatted HTML line).
+        """
+        if list_type == ListType.NONE:
+            return is_first, line
+
+        # Determine the marker length based on list type
+        marker_length = 3 if list_type == ListType.ORDERED else 2
+        formatted_line = f"<li>{line[marker_length:]}</li>"
+
+        # Add opening tag for the first list item
+        if is_first is None:
+            formatted_line = f"<{list_type.value}>{formatted_line}"
+            is_first = True
+
+        return is_first, formatted_line
+
+    def close_list(self,
+        is_first: Optional[bool], list_type: ListType
+    ) -> Tuple[None, str]:
+        """
+        Close an HTML list if it was opened.
+
+        Args:
+            is_first: Whether a list is currently open.
+            list_type: The type of list (ordered or unordered).
+
+        Returns:
+            A tuple of (None, closing tag or empty string).
+        """
+        if is_first and list_type != ListType.NONE:
+            return None, f"</{list_type.value}>"
+        return None, ""
+
+    def format_markdown_to_html(self, data: str) -> str:
+        """
+        Convert Markdown text to HTML with specific formatting rules.
+
+        Args:
+            data: The input Markdown text.
+
+        Returns:
+            The formatted HTML string with lines joined by <br /> tags.
+
+        Examples:
+            >>> format_markdown_to_html("# Header\\n- Item")
+            '<Header size="6xl"><b>Header</b></Header> <br /> <ul><li>Item</li>'
+        """
         final_content = []
-        #break into pieces for processing.
-        # Currently handling only known scenarios encountered from AI responses
-        # In case more scenarios are encountered they can be handled accordingly.
-        data = data.split("\\n")
-        list_first_occurence = None
-        ordered_list = False
-        markup_mapping = {
-            '# ': {'start': '<Header size="6xl"><b>', 'end': '</b></Header>'},
-            '## ': {'start': '<Header size="5xl"><b>', 'end': '</b></Header>'},
-            '### ': {'start': '<Header size="4xl"><b>', 'end': '</b></Header>'},
-            '___': {'start': '<hr />', 'end': ''},
-            '---': {'start': '<hr />', 'end': ''},
-            '***': {'start': '<hr />', 'end': ''}
-        }
-        for line in data:
-            tag_opened = True
-            # Handling only two levels of ordered/unordered list
-            if len(line) and (line.startswith('- ') or line.startswith('+ ') or line.startswith('* ')):
-                ordered_list = False
-                list_first_occurence, line = self.open_order_unordered_list(line, list_first_occurence, ordered_list)
-            elif len(line) and line[0].isnumeric() and line[1:3] == '. ':
-                ordered_list = True
-                list_first_occurence, line = self.open_order_unordered_list(line, list_first_occurence, ordered_list)
-            else:
-                for key in markup_mapping:
-                    if line.startswith(key):
-                        list_first_occurence, closing_tag = self.close_order_unordered_list(list_first_occurence, ordered_list)
-                        line = f"{closing_tag}{line.replace(key, markup_mapping[key]['start'])}{markup_mapping[key]['end']}"
-            final_content.append(line)
+        lines = data.split("\\n")
+        is_list_open = None
+        current_list_type = ListType.NONE
 
-        return " <br /> ".join(final_content)
+        for line in lines:
+            if not line.strip():
+                # Close any open list for empty lines
+                is_list_open, closing_tag = self.close_list(is_list_open, current_list_type)
+                final_content.append(closing_tag)
+                current_list_type = ListType.NONE
+                continue
+
+            # Check for unordered list
+            if any(line.startswith(marker) for marker in UNORDERED_LIST_MARKERS):
+                if current_list_type != ListType.UNORDERED:
+                    is_list_open, closing_tag = self.close_list(is_list_open, current_list_type)
+                    final_content.append(closing_tag)
+                    current_list_type = ListType.UNORDERED
+                is_list_open, formatted_line = self.open_list_item(line, is_list_open, ListType.UNORDERED)
+                final_content.append(formatted_line)
+                continue
+
+            # Check for ordered list
+            if line and line[0].isdigit() and line[1:3] == ORDERED_LIST_MARKER:
+                if current_list_type != ListType.ORDERED:
+                    is_list_open, closing_tag = self.close_list(is_list_open, current_list_type)
+                    final_content.append(closing_tag)
+                    current_list_type = ListType.ORDERED
+                is_list_open, formatted_line = self.open_list_item(line, is_list_open, ListType.ORDERED)
+                final_content.append(formatted_line)
+                continue
+
+            # Close any open list before processing other markup
+            is_list_open, closing_tag = self.close_list(is_list_open, current_list_type)
+            final_content.append(closing_tag)
+            current_list_type = ListType.NONE
+
+            # Process headers
+            for marker, tags in HEADER_MARKERS.items():
+                if line.startswith(marker):
+                    final_content.append(f"{tags['start']}{line[len(marker):]}{tags['end']}")
+                    break
+            else:
+                # Process horizontal rules
+                if line in HORIZONTAL_RULE_MARKERS:
+                    final_content.append(HORIZONTAL_RULE_MARKERS[line])
+                else:
+                    final_content.append(line)
+
+        # Close any remaining open list
+        if is_list_open:
+            _, closing_tag = self.close_list(is_list_open, current_list_type)
+            final_content.append(closing_tag)
+
+        return LINE_BREAK.join(final_content)
