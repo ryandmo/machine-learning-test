@@ -27,7 +27,7 @@ export default class Sentiment extends Component {
     };
 
     getSentimentColor = (sentiment) =>{
-        return (sentiment === 'NEG')? "red.400":(sentiment === 'POS') ? "green.400" : "blue.400";
+        return (sentiment.startsWith('NEG'))? "red.400":(sentiment.startsWith('POS')) ? "green.400" : "blue.400";
     }
 
     getChartData = () => {
@@ -65,7 +65,7 @@ export default class Sentiment extends Component {
                       <HoverCard.Content maxWidth="240px">
                         <HoverCard.Arrow />
                         <Box>
-                          You are feeling <Strong>{ (record["sentiment"] === 'NEG')? "Negative":(record["sentiment"] === 'POS') ? "Positive" : "Neutral" }</Strong>  right now!!
+                          You are feeling <Strong>{ (record["sentiment"].startsWith('NEG'))? "Negative":(record["sentiment"].startsWith('POS')) ? "Positive" : "Neutral" }</Strong>  right now!!
                         </Box>
                       </HoverCard.Content>
                     </HoverCard.Positioner>

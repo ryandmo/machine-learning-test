@@ -51,5 +51,5 @@ class ImageCaptionGenerator:
         img = Image.open(file_name)
         result = self.image_caption_generator(img)
         result[0].update({"questions": input_file.filename})
-        logger.info(self.database_wrapper.save_data(result, self.database))
+        logger.info(self.database_wrapper.save_data(result[0], self.database))
         return result[0]

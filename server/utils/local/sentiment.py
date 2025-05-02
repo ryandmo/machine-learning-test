@@ -49,7 +49,7 @@ class SentimentAnalyzer:
             sentiment = self.database_wrapper.document_read(
                 database = self.database,
                 document = self.database_wrapper.get_id(content['questions'][0]),
-                partition = ""
+                partition = "default"
             )
             if sentiment["status_code"] <= 400:
                 logger.info("Found in DB")
@@ -65,6 +65,6 @@ class SentimentAnalyzer:
                     'sentiment': sentiment[0]['label']
                 }
                 # Save all sentiments into Database
-                logger.info(self.database_wrapper.save_data([tweet], self.database))
+                logger.info(self.database_wrapper.save_data(tweet, self.database))
             return tweet
         return []

@@ -90,7 +90,7 @@ class DatabaseWrapper:
                 data["modification_date"] = str(datetime.datetime.utcnow())
                 response = self.session.post(f"{COUCHDB_CONF['connection_string']}/{database}", headers=self.headers, json=data)
             if operation == "read":
-                print(f"{COUCHDB_CONF['connection_string']}/{path}/{document}")
+                logger.debug(f"{COUCHDB_CONF['connection_string']}/{path}/{document}")
                 response = self.session.get(f"{COUCHDB_CONF['connection_string']}/{path}/{document}", headers=self.headers,
                                             params=data)
             if operation == "update":
@@ -240,6 +240,7 @@ class DatabaseWrapper:
         return f"{partition}:{id_text}"
 
     def add_id_and_creation_data_for_db_record(self, data, is_modified = False, partition = "default"):
+        logger.debug(data)
         logger.debug("In add_id_and_creation_data_for_db_record")
         if not is_modified:
             data["creation_date"] = str(datetime.datetime.utcnow())
@@ -247,7 +248,7 @@ class DatabaseWrapper:
         data["_id"] = self.get_id(data["questions"], partition = partition)
         return data
 
-    def save_data(self, data, database, partition = None):
+    def save_data(self, data, database, partition = "default"):
         logger.debug("Saving data into database")
         is_modified = True
         # Create database if not already created for packages
@@ -259,19 +260,16 @@ class DatabaseWrapper:
 
         return self.document_upsert(
             database,
-            self.add_id_and_creation_data_for_db_record(
-                [self.add_id_and_creation_data_for_db_record(
-                    i,
-                    is_modified,
-                    partition
-                ) for i in data],
+            [self.add_id_and_creation_data_for_db_record(
+                data,
                 is_modified,
                 partition
-            )
+            )]
         )
 
     def fetch_history(self, database, selector_query):
         # get all records from DB and send the list across
+        logger.debug(selector_query)
         docs = self.database_find(
             database = database,
             query = selector_query
