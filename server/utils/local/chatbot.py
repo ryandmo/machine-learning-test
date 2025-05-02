@@ -3,7 +3,6 @@ Build a simple chatbot interface where users can type messages, and an AI model 
 The frontend will be a clean React UI, and the backend will use Python to interact with a free AI API to generate responses.
 """
 
-import markdown
 from huggingface_hub import login
 from transformers import pipeline
 

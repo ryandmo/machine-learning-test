@@ -36,7 +36,9 @@ class ImageCaptionGenerator:
 
     def __init__(self):
         # login(token=HUGGING_FACE_API["api_key"])
-        self.image_caption_generator = pipeline(model="Salesforce/blip-image-captioning-base")
+        self.image_caption_generator = pipeline(
+            model = "Salesforce/blip-image-captioning-base"
+        )
         self.database = "image_caption_generator"
         self.database_wrapper = DatabaseWrapper()
 

@@ -1,13 +1,15 @@
 import { Component } from 'react';
 import { Image, HStack, Stack } from "@chakra-ui/react";
 import { Button, FileUpload } from "@chakra-ui/react";
-import { Field, Fieldset } from "@chakra-ui/react";
+import { Field, Fieldset, Input } from "@chakra-ui/react";
 import { HiUpload } from "react-icons/hi";
 import { Tag } from "@chakra-ui/react";
+import { CloseButton, Dialog, Portal } from "@chakra-ui/react"
 
 const dataURL = 'http://192.168.0.160:8002/generate-caption-for-image/';
 const fetchImageURL = 'http://192.168.0.160:8002/get-image/';
 const historyURL = 'http://192.168.0.160:8002/fetch-image-caption-history/';
+const updateURL = 'http://192.168.0.160:8002/update-caption-for-image/';
 
 export default class ImageCaptioning extends Component {
     state = {
@@ -111,18 +113,87 @@ export default class ImageCaptioning extends Component {
           )
     }
 
+    saveChanges = (record) => {
+        console.log(record);
+        var data = new FormData();
+        console.log({
+            "generated_text": record["generated_text"],
+            "questions": record["questions"],
+            "_rev": record["_rev"]
+        });
+        data.append( "json", JSON.stringify({
+            "generated_text": record["generated_text"],
+            "questions": record["questions"],
+            "_rev": record["_rev"]
+        }));
+        fetch(updateURL, {
+            mode: 'cors',
+            method: 'PUT',
+            body: data
+        })
+        .then(response => response.json())
+        .then(data => {
+            this.fetchHistory();
+            this.setState({"loading": "none"});
+            this.setState({"caption_button_loading": false});
+        })
+        .catch(err => {
+            console.log(err)
+            this.setState({"loading": "none"});
+            this.setState({"caption_button_loading": false});
+        });
+    }
+
     generateThumbnail = (record) => {
         const ImageURL = `${fetchImageURL}?filename=${record["questions"]}`;
         return (
-            <Stack flexShrink="0">
-                <Image id={ record["_id"] }
-                    src={ImageURL}
-                    width="300px"
-                />
-                <Tag.Root>
-                    <Tag.Label>{ record["generated_text"] }</Tag.Label>
-                </Tag.Root>
-            </Stack>
+            <Dialog.Root key={record["_id"]} size="lg">
+                <Dialog.Trigger asChild>
+                    <Stack flexShrink="0">
+                        <Image
+                            src={ImageURL}
+                            width="300px"
+                        />
+                        <Tag.Root>
+                            <Tag.Label>{ record["generated_text"] }</Tag.Label>
+                        </Tag.Root>
+                    </Stack>
+                </Dialog.Trigger>
+                <Portal>
+                  <Dialog.Backdrop />
+                  <Dialog.Positioner>
+                    <Dialog.Content>
+                      <Dialog.Header>
+                        <Dialog.Title>Edit Caption</Dialog.Title>
+                      </Dialog.Header>
+                      <Dialog.Body>
+                        <Stack flexShrink="0">
+                            <Image
+                                src={ImageURL}
+                                width="300px"
+                            />
+                            <Field.Root invalid>
+                              <Field.Label>Caption:</Field.Label>
+                              <Input defaultValue = { record["generated_text"] } onChange= { event => { record["generated_text"] = event.target.value }}/>
+                              <Field.ErrorText>This field is required</Field.ErrorText>
+                            </Field.Root>
+                        </Stack>
+                      </Dialog.Body>
+                      <Dialog.Footer>
+                        <Dialog.ActionTrigger asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </Dialog.ActionTrigger>
+                        <Dialog.ActionTrigger asChild>
+                            <Button onClick={ event => { this.saveChanges(record) }} >Save</Button>
+                        </Dialog.ActionTrigger>
+                      </Dialog.Footer>
+                      <Dialog.CloseTrigger asChild>
+                        <CloseButton size="sm" />
+                      </Dialog.CloseTrigger>
+                    </Dialog.Content>
+                  </Dialog.Positioner>
+                </Portal>
+            </Dialog.Root>
         )
     }
 
