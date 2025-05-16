@@ -1,0 +1,21 @@
+{
+  "name": "prajna",
+  "version": "1.0.0",
+  "description": "Study project",
+  "main": "app.js",
+  "author": "Ryan DMello",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "couchbase": "^4.4.5",
+    "crypto-browserify": "^3.12.1",
+    "dotenv": "^16.5.0",
+    "express": "5.1.0",
+    "morgan": "^1.10.0",
+    "nodemon": "latest"
+  },
+  "scripts": {
+    "dev": "nodemon server.js"
+  }
+}
