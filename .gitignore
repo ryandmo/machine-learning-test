@@ -2,3 +2,7 @@ node/node_modules/
 node/yarn.lock
 node/package-lock.json
 node/.env
+.env
+package-lock.json
+yarn.lock
+node_modules/

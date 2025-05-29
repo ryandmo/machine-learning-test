@@ -256,12 +256,12 @@ export default class CouchDB{
 		)
 	}
 
-	fetchData = (collectionName, query) => {
+	fetchData = async (collectionName, query) => {
 		// pass the selector query for filtering.
 		// e.g. {"fname": "Ram"}, will returns documents with column fname set to value Ram.
 		// e.g. {"age": {"$gt": 45}}, will return all docs with age column value above 45.
 		// e.g {}, will return all the docs in the collection.
-		return this.findInCollection(
+		return  this.findInCollection(
 			collectionName,
 			{
 				"selector": query

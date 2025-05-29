@@ -1,5 +1,5 @@
 {
-  "name": "prajna",
+  "name": "ai_assistance_server",
   "version": "1.0.0",
   "description": "Study project",
   "main": "app.js",
@@ -7,11 +7,14 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "@huggingface/transformers": "^3.5.1",
     "body-parser": "^2.2.0",
     "couchbase": "^4.4.5",
     "crypto-browserify": "^3.12.1",
     "dotenv": "^16.5.0",
     "express": "5.1.0",
+    "express-fileupload": "^1.5.1",
+    "fs": "^0.0.1-security",
     "morgan": "^1.10.0",
     "nodemon": "latest"
   },
